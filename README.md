@@ -1,0 +1,5 @@
+# crypto-chart
+
+## License
+
+MIT
