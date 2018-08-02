@@ -91,7 +91,7 @@
 </template>
 
 <script>
-  import ChartWorker from 'worker-loader!@/kernel/webWorkers/ChartWorker.js';
+  import ChartWorker from 'worker-loader!../workers/ChartWorker.js';
   import cloneDeep from 'lodash.clonedeep';
 
   export default {
