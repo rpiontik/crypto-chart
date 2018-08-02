@@ -1,0 +1,33 @@
+{
+  "name": "crypto-chart",
+  "version": "1.0.0",
+  "description": "The VUE component for visualization market-data of crypto exchanges.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/rpiontik/crypto-chart.git"
+  },
+  "keywords": [
+    "trading",
+    "chart",
+    "crypto",
+    "VUE"
+  ],
+  "author": "R.Piontik",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rpiontik/crypto-chart/issues"
+  },
+  "homepage": "https://github.com/rpiontik/crypto-chart#readme",
+  "dependencies": {
+    "axios": "^0.16.2",
+    "lodash.clonedeep": "^4.5.0",
+    "vue": "^2.5.16"
+  },
+  "devDependencies": {
+    "worker-loader": "^2.0.0"
+  }
+}
