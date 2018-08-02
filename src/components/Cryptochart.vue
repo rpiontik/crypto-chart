@@ -2,10 +2,10 @@
   <svg
           class="cryptochart"
           :view-box.camel="[0, 0, width, height]"
-          @mousedown.prevent="onMouseDown"
-          @mousemove.prevent="onMouseMove"
-          @mouseup.prevent="onMouseUp"
-          @mouseleave.prevent="onMouseUp"
+          @mousedown.prevent="_onMixinMouse"
+          @mousemove.prevent="_onMixinMouse"
+          @mouseup.prevent="_onMixinMouse"
+          @mouseleave.prevent="_onMixinMouse"
           @touchstart.prevent="onTouch"
           @touchmove.prevent="onTouch"
           @touchend.prevent="onTouch"
@@ -93,9 +93,19 @@
 <script>
   import ChartWorker from 'worker-loader!../workers/ChartWorker.js';
   import cloneDeep from 'lodash.clonedeep';
+  import MixinEventsMouse from '../mixins/events-mouse';
+  import MixinEventsTouche from '../mixins/events-touch';
+  import MixinEventsWheel from '../mixins/events-wheel';
+  import MixinFilters from '../mixins/filters';
 
   export default {
-    name: 'cryptochart',
+    name: 'crypto-chart',
+    mixins: [
+      MixinEventsMouse,
+      MixinEventsTouche,
+      MixinEventsWheel,
+      MixinFilters
+    ],
     props: {
       data: {
         type: Array,
@@ -315,11 +325,9 @@
       this.onResize();
     },
     created () {
-      window.addEventListener('mousewheel', this.proxyScrollEvent);
       window.addEventListener('resize', this.onResize);
     },
     destroyed () {
-      window.removeEventListener('mousewheel', this.proxyScrollEvent);
       window.removeEventListener('resize', this.onResize);
     },
     methods: {
@@ -368,8 +376,15 @@
       rebaseZoom (zoom) {
         return this.rebaseZoomByParams(this, zoom);
       },
-      onZoom (delta, event) {
+      onZoom (zoom, targetMoment) {
         let oldExposition = this.exposition;
+        let zoomValue = this.rebaseZoom(this.zoom.value * zoom);
+        this.zoom.value = zoomValue < 1 ? 1 :this.rebaseZoom(this.zoom.value * zoom);
+        this.interval.offset = this.rebaseOffset(
+          this.interval.offset + (oldExposition - this.exposition) *
+          ((targetMoment - this.interval.offset) / this.exposition)
+        );
+        /*
         switch (delta) {
           case -1:
             this.zoom.value = this.rebaseZoom(this.zoom.value / this.zoom.step);
@@ -385,6 +400,7 @@
           this.interval.offset + (oldExposition - this.exposition) *
           ((event.offsetX * this.koofScreenX - this.chart.offset.left) / this.chart.width)
         );
+        */
       },
       onTouch (evt) {
         evt.preventDefault();
@@ -439,14 +455,6 @@
 
         evt.target.dispatchEvent(newEvt);
       },
-      onMouseDown (event) {
-        this.scrolling.clientX = event.clientX;
-        this.scrolling.clientY = event.clientY;
-        this.scrolling.isScrolling = true;
-      },
-      onMouseUp (event) {
-        this.scrolling.isScrolling = false;
-      },
       findHoverCandle () {
         if (this.candles) {
           this.candles.candles.map((candle) => {
@@ -457,17 +465,8 @@
           });
         }
       },
-      onMouseMove (event) {
-        this.interactive.mouseX = event.offsetX * this.koofScreenX - this.chart.offset.left;
-        this.interactive.mouseY = event.offsetY * this.koofScreenY - this.chart.offset.top;
-        this.findHoverCandle();
-        if (this.scrolling.isScrolling) {
-          this.scrolling.power = (this.scrolling.clientX - event.clientX) * this.koofScreenX;
-          this.scrolling.clientX = event.clientX;
-          this.interval.offset = this.rebaseOffset(
-            this.interval.offset + this.scrolling.power / this.dpi
-          );
-        }
+      onScroll (params) {
+        this.interval.offset = this.rebaseOffset(this.interval.offset + params.offsetX);
       },
       onResize () {
         this.clientWidth = this.$el.clientWidth;
@@ -484,15 +483,6 @@
         }
 
         return Math.floor(offset);
-      },
-      proxyScrollEvent (event) {
-        let e = window.event || event;
-        let delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-
-        if (e.path.indexOf(this.$el) >= 0) {
-          this.onZoom(delta, e);
-          e.preventDefault();
-        }
       }
     },
     data () {
@@ -544,54 +534,7 @@
             left: 60
           }
         },
-        scrolling: {
-          power: 0,
-          isScrolling: false,
-          clientX: 0,
-          clientY: 0,
-          inertTimer: setInterval(() => {
-            if (!this.isScrolling && (Math.abs(this.scrolling.power) > 1)) {
-              this.interval.offset = this.rebaseOffset(
-                this.interval.offset + this.scrolling.power / this.dpi
-              );
-              this.scrolling.power /= 1.2;
-            }
-          }, 20)
-        }
       };
-    },
-    filters: {
-      day (timestamp) {
-        return (timestamp - timestamp % 86400) / 86400 + 1;
-      },
-      time (timestamp, partTime) {
-        let date = new Date(timestamp * 1000);
-        let year = date.getUTCFullYear();
-        let month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
-        let day = ('0' + (date.getUTCDate())).slice(-2);
-        let hours = ('0' + date.getHours()).slice(-2);
-        let mins = ('0' + date.getMinutes()).slice(-2);
-        let sec = ('0' + date.getSeconds()).slice(-2);
-        if (partTime < 86400) {
-          return `${hours}:${mins}:${sec}`;
-        } else if (partTime <= 2592000) {
-          return `${day}.${month}.${year}`;
-        } else {
-          return `${month}.${year}`;
-        }
-      },
-      price (value) {
-        return value ? value.toFixed(4) : 0;
-      },
-      moment (timestamp) {
-        let date = new Date(timestamp * 1000);
-        let year = date.getUTCFullYear();
-        let month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
-        let day = ('0' + (date.getUTCDate())).slice(-2);
-        let hours = ('0' + date.getHours()).slice(-2);
-        let mins = ('0' + date.getMinutes()).slice(-2);
-        return `${day}.${month}.${year} ${hours}:${mins}`;
-      }
     }
   };
 </script>
