@@ -1,7 +1,7 @@
 const MIN_WIDTH_CANDLE = 3; // Минимальная ширина свечи
 const VOLUME_ZONE = 0.3;    // Область отводимая на объем
 
-class ChartWorker {
+class CandlesWorker {
   constructor () {
     this.data = {
       params: {},
@@ -12,7 +12,6 @@ class ChartWorker {
       tree: [],
     };
   }
-
   /**
    * @description Apply params for render
    * @param {Object} params - params
@@ -22,7 +21,6 @@ class ChartWorker {
     this.data.params = params;
     this.data.treeReady = false;
   }
-
   /**
    * @description Append part the chart data
    * @param {Number} chartID - chart ID
@@ -42,7 +40,6 @@ class ChartWorker {
     });
     this.sendMessage('APPENDED');
   }
-
   /**
    * @description Make specific tree by raw data
    * @return none
@@ -83,7 +80,6 @@ class ChartWorker {
     });
     this.data.treeReady = true;
   }
-
   /**
    * @description Looking for satisfying width of candle
    * @param {Number} exposition - exposition width
@@ -108,7 +104,6 @@ class ChartWorker {
     });
     return caseCandidate;
   }
-
   /**
    * @description Render candles objects
    * @param {Number} offset     - exposition offset
@@ -232,7 +227,7 @@ class ChartWorker {
   }
 }
 
-let worker = new ChartWorker();
+let worker = new CandlesWorker();
 
 onmessage = (data) => {
   worker.messageHandler(data);

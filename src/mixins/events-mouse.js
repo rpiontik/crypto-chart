@@ -35,6 +35,8 @@ export default {
   data () {
     return {
       eventsMouse: {
+        x: null,
+        y: null,
         scrolling: {
           power: 0,
           clientX: 0,

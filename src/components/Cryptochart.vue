@@ -1,23 +1,20 @@
 <template>
   <svg
-          class="cryptochart"
+          class="crypto-chart"
           :view-box.camel="[0, 0, width, height]"
           @mousedown.prevent="_onMixinMouse"
           @mousemove.prevent="_onMixinMouse"
           @mouseup.prevent="_onMixinMouse"
           @mouseleave.prevent="_onMixinMouse"
-          @touchstart.prevent="onTouch"
-          @touchmove.prevent="onTouch"
-          @touchend.prevent="onTouch"
-          @touchcancel.prevent="onTouch"
+          @touchstart.prevent="_onMixinTouch"
+          @touchmove.prevent="_onMixinTouch"
+          @touchend.prevent="_onMixinTouch"
+          @touchcancel.prevent="_onMixinTouch"
 
   >
-
     <g :transform="['translate(' + chart.offset.left, chart.offset.top + ')']">
-
       <g>
         <rect class="axis-border" :width="chart.width" :height="chart.height"></rect>
-
         <g
                 v-for="price in axisY"
                 :transform="['translate(0', price.y + ')']"
@@ -32,7 +29,6 @@
             {{price.price | price}}
           </text>
         </g>
-
         <g
                 v-for="time in axisX"
                 :transform="['translate(' + time.x, '0)']"
@@ -76,115 +72,41 @@
           C: {{interactive.hoverCandle.close.toFixed(6)}}
           Vol: {{interactive.hoverCandle.volume.toFixed(6)}}
         </text>
-        <g class="price-label" :transform="['translate(-3', interactive.mouseY + ')']">
+        <g class="price-label" :transform="['translate(-3', interactive.cursorY + ')']">
           <path d="M-36 -6 L-6 -6 L0 0 L-6 6 L-36 6" />
           <text x="-6" :y="fontSizeAxisY * 0.33" :font-size="fontSizeAxisY * 0.70">{{currentPrice | price}}</text>
         </g>
-        <g class="moment-label" :transform="['translate(' + interactive.mouseX, chart.height + ')']">
+        <g class="moment-label" :transform="['translate(' + interactive.cursorX, chart.height + ')']">
           <path d="M-36 0 L36 0 L36 24 L-36 24" />
           <text :y="fontSizeAxisY * 0.9" :font-size="fontSizeAxisY * 0.70">{{interactive.hoverCandle.timestamp | moment}}</text>
         </g>
-
       </template>
     </g>
   </svg>
 </template>
 
 <script>
-  import ChartWorker from 'worker-loader!../workers/ChartWorker.js';
   import cloneDeep from 'lodash.clonedeep';
+  import MixinScreen from '../mixins/screen';
   import MixinEventsMouse from '../mixins/events-mouse';
   import MixinEventsTouche from '../mixins/events-touch';
   import MixinEventsWheel from '../mixins/events-wheel';
   import MixinFilters from '../mixins/filters';
+  import MixinProps from '../mixins/props';
+  import MixinWorkers from '../mixins/workers';
 
   export default {
     name: 'crypto-chart',
     mixins: [
+      MixinScreen,
+      MixinProps,
       MixinEventsMouse,
       MixinEventsTouche,
       MixinEventsWheel,
-      MixinFilters
+      MixinFilters,
+      MixinWorkers
     ],
-    props: {
-      data: {
-        type: Array,
-        required: true
-      },
-      'box-width': {
-        type: Number,
-        required: true
-      },
-      'box-height': {
-        type: Number,
-        required: true
-      },
-      intervalWidth: {
-        type: Number,
-        required: false,
-        default: 86400
-      },
-      initExposition: {
-        type: Number,
-        required: false,
-        default: 86400
-      },
-      intervalStartOffset: {
-        type: Number,
-        required: false,
-        default: null
-      },
-      availableCandleWidths: {
-        type: Array,
-        required: false,
-        default: () => [900, 1800, 3600, 14400, 28800, 43200, 86400, 604800, 2592000, 31536000]
-      },
-      availableIntervals: {
-        type: Array,
-        required: false,
-        default: () => [900, 1800, 3600, 14400, 28800, 43200, 86400, 604800, 2592000, 31536000]
-      }
-    },
-    watch: {
-      intervalWidth (value) {
-        this.interval.width = value;
-      },
-
-      initExposition (value) {
-        this.zoom.value = this.interval.width / value;
-      },
-
-      intervalStartOffset (value) {
-        this.interval.offset = value;
-      },
-      availableCandleWidths (value) {
-        this.candleWidths = value;
-        this.worker.chartWorker.postMessage({
-          task: 'SET-PARAMS',
-          params: {
-            candleWidths: this.availableCandleWidths
-          }
-        });
-        this.zoom.value = this.rebaseZoom(this.zoom.value);
-        this.doRemakeCandles();
-      },
-      availableIntervals (value) {
-        this.zoom.time_parts = value;
-        this.zoom.value = this.rebaseZoom(this.zoom.value);
-        this.doRemakeCandles();
-      },
-      data (value) {
-        this.chartData = value;
-      },
-      'zoom.value' () {
-        this.doRemakeCandles();
-      },
-      'interval.offset' () {
-        this.doRemakeCandles();
-      }
-    },
     computed: {
-
       positiveCandlesPath () {
         let result = this.candles.candlesPositivePath;
         if (this.interactive.hoverCandle && this.interactive.hoverCandle.class === 'positive') {
@@ -193,7 +115,6 @@
         }
         return result.join();
       },
-
       negativeCandlesPath () {
         let result = this.candles.candlesNegativePath;
         if (this.interactive.hoverCandle && this.interactive.hoverCandle.class === 'negative') {
@@ -202,7 +123,6 @@
         }
         return result.join();
       },
-
       volumeCandlesPath () {
         let result = this.candles.volumePath;
         if (this.interactive.hoverCandle) {
@@ -211,32 +131,19 @@
         }
         return result.join();
       },
-
-      // Количество точек на секунду с учетом зума
-      dpi () {
-        return this.chart.width / this.interval.width * this.zoom.value;
-      },
-
-      // Экспозиция времени отображаемая на графике с учетом зума
-      exposition () {
-        return 1 * (this.chart.width / this.dpi).toFixed(5);
-      },
-
       crossPath () {
         if (!this.interactive.hoverCandle) {
           return '';
         }
         let x = this.interactive.hoverCandle.x + this.candles.width * 0.25;
         return `M${x} 0 L${x} ${this.chart.height} ` +
-          `M0 ${this.interactive.mouseY} L${this.chart.width} ${this.interactive.mouseY} `
+          `M0 ${this.interactive.cursorY} L${this.chart.width} ${this.interactive.cursorY} `
           ;
       },
-
       currentPrice () {
         return this.candles.high - (this.candles.high - this.candles.low) *
-          (this.interactive.mouseY / this.chart.height);
+          (this.interactive.cursorY / this.chart.height);
       },
-
       // Ось Y
       axisY () {
         if (!this.candles) {
@@ -267,7 +174,7 @@
 
           if (
             (partsNumber == null || candidatePartsNumber > partsNumber) &&
-            candidatePartsNumber <= this.zoom.max_parts
+            candidatePartsNumber <= this.zoom.time_parts.length
           ) {
             timePart = candidate;
             partsNumber = candidatePartsNumber;
@@ -296,22 +203,6 @@
         this.zoom.curr_time_part = timePart;
         return result;
       },
-      // Коэфициент преобразования реальных точек во внутренние по ширине
-      koofScreenX () {
-        return ('clientWidth' in this) && (+this.clientWidth) !== 0 ? this.width / this.clientWidth : 1;
-      },
-      // Коэфициент преобразования реальных точек во внутренние по высоте
-      koofScreenY () {
-        return (+this.clientHeight) !== 0 ? this.height / this.clientHeight : 0;
-      },
-      fontHeight () {
-        return this.koofScreenY > 0 ? 16 * this.koofScreenY : 16;
-      },
-
-      // Логическая единица
-      inch () {
-        return this.koofScreenX > 0 ? this.koofScreenX : 1;
-      },
 
       fontSizeAxisY () {
         return this.fontHeight < (this.chart.offset.left / 6) ? this.chart.offset.left / 6 : this.fontHeight;
@@ -321,219 +212,37 @@
         return this.fontHeight > (this.clientWidth / 16) ? this.clientWidth / 16 : this.fontHeight;
       }
     },
-    mounted () {
-      this.onResize();
-    },
-    created () {
-      window.addEventListener('resize', this.onResize);
-    },
-    destroyed () {
-      window.removeEventListener('resize', this.onResize);
-    },
     methods: {
-      doRemakeCandles () {
-        this.worker.chartWorker.postMessage({
-          task: 'RENDER',
-          offset: this.interval.offset,
-          exposition: this.exposition,
-          viewWidth: this.chart.width,
-          viewHeight: this.chart.height
-        });
+      onRedraw () {
+        for(let worker in this.workers)
+          this.workers[worker].redraw();
       },
-      onChartWorkerMessage (message) {
-        switch (message.data.type) {
-          case 'APPENDED' : {
-            this.doRemakeCandles();
-            break;
-          }
-          case 'RENDERED' : {
-            let candles = {};
-            for (let field in message.data.body) {
-              if (field !== 'candles') {
-                candles[field] = message.data.body[field];
-              }
-            }
-            this.candles = candles;
-            this.candles['candles'] = message.data.body.candles;
-            // this.candles = message.data.body;
-            break;
-          }
-          default: break;
-        }
-      },
-      rebaseZoomByParams (params, zoom) {
-        let maxPart = params.zoom.time_parts[params.zoom.time_parts.length - 1];
-        let minZoom = params.interval.width / (maxPart * params.zoom.max_parts);
-        let result = zoom < minZoom ? minZoom : zoom;
 
-        if (this.candleWidths && this.candleWidths.length) {
-          let maxCandleWidth = this.candleWidths[this.candleWidths.length - 1];
-          minZoom = params.interval.width / (maxCandleWidth * this.chart.width / 3);
-          result = result < minZoom ? minZoom : result;
-        }
-        return result;
-      },
-      rebaseZoom (zoom) {
-        return this.rebaseZoomByParams(this, zoom);
-      },
-      onZoom (zoom, targetMoment) {
-        let oldExposition = this.exposition;
-        let zoomValue = this.rebaseZoom(this.zoom.value * zoom);
-        this.zoom.value = zoomValue < 1 ? 1 :this.rebaseZoom(this.zoom.value * zoom);
-        this.interval.offset = this.rebaseOffset(
-          this.interval.offset + (oldExposition - this.exposition) *
-          ((targetMoment - this.interval.offset) / this.exposition)
-        );
-        /*
-        switch (delta) {
-          case -1:
-            this.zoom.value = this.rebaseZoom(this.zoom.value / this.zoom.step);
-            break;
-          case 1:
-            this.zoom.value = this.rebaseZoom(this.zoom.value * this.zoom.step);
-            break;
-        }
-        if (this.zoom.value <= 1) {
-          this.zoom.value = 1;
-        }
-        this.interval.offset = this.rebaseOffset(
-          this.interval.offset + (oldExposition - this.exposition) *
-          ((event.offsetX * this.koofScreenX - this.chart.offset.left) / this.chart.width)
-        );
-        */
-      },
-      onTouch (evt) {
-        evt.preventDefault();
-        if (evt.touches.length > 1 || (evt.type === 'touchend' && evt.touches.length > 0)) {
-          let calcDistance = () => {
-            let deltaX = Math.abs(evt.targetTouches[0].screenX - evt.targetTouches[1].screenX);
-            let deltaY = Math.abs(evt.targetTouches[0].screenY - evt.targetTouches[1].screenY);
-            return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-          };
-          switch (evt.type) {
-            case 'touchstart':
-              if (evt.targetTouches.length > 1) {
-                this.zoom.toucheStartDistance = calcDistance();
-                this.zoom.toucheStartValue = this.zoom.value;
-              } else {
-                this.zoom.toucheStartDistance = -evt.targetTouches.length;
-              }
-              break;
-            case 'touchmove':
-              if (this.zoom.toucheStartDistance >= 0) {
-                this.zoom.value = this.zoom.toucheStartValue * (Math.abs(calcDistance() / this.zoom.toucheStartDistance));
-              }
-              break;
-            case 'touchend':
-              this.zoom.toucheStartDistance = -1;
-              break;
-          }
-          return;
-        }
-
-        let newEvt = document.createEvent('MouseEvents');
-        let type = null;
-        let touch = null;
-        switch (evt.type) {
-          case 'touchstart':
-            type = 'mousedown';
-            touch = evt.changedTouches[0];
-            break;
-          case 'touchmove':
-            type = 'mousemove';
-            touch = evt.changedTouches[0];
-            break;
-          case 'touchend':
-            type = 'mouseup';
-            touch = evt.changedTouches[0];
-            break;
-        }
-
-        newEvt.initMouseEvent(type, true, true, document.defaultView, 0,
-          touch.screenX, touch.screenY, touch.clientX, touch.clientY,
-          evt.ctrlKey, evt.altKey, evt.shiftKey, evt.metaKey, 0, null);
-
-        evt.target.dispatchEvent(newEvt);
+      onHover (params) {
+        this.interactive.cursorX = params.x;
+        this.interactive.cursorY = params.y;
+        this.findHoverCandle();
       },
       findHoverCandle () {
         if (this.candles) {
           this.candles.candles.map((candle) => {
-            if ((this.interactive.mouseX >= candle.x) &&
-              (this.interactive.mouseX <= candle.x + this.candles.width)) {
+            if ((this.interactive.cursorX >= candle.x) &&
+              (this.interactive.cursorX <= candle.x + this.candles.width)) {
               this.interactive.hoverCandle = candle;
             }
           });
         }
       },
-      onScroll (params) {
-        this.interval.offset = this.rebaseOffset(this.interval.offset + params.offsetX);
-      },
-      onResize () {
-        this.clientWidth = this.$el.clientWidth;
-        this.clientHeight = this.$el.clientHeight;
-        this.height = this.clientWidth ? this.$el.clientHeight / this.clientWidth * this.width : 0;
-        this.chart.offset.top = this.inch * 10;
-        this.chart.height = this.height - this.chart.offset.top - this.fontSizeAxisX * 1.5;
-      },
-      rebaseOffset (offset) {
-        if (offset < 0) {
-          offset = 0;
-        } else if (offset > this.interval.width - this.exposition) {
-          offset = this.interval.width - this.exposition;
-        }
-
-        return Math.floor(offset);
-      }
     },
     data () {
-      let chartWorker = new ChartWorker({
-        candleWidths: this.availableCandleWidths
-      });
-      chartWorker.onmessage = this.onChartWorkerMessage;
-      chartWorker.postMessage({
-        task: 'SET-PARAMS',
-        params: {
-          candleWidths: this.availableCandleWidths
-        }
-      });
-      chartWorker.postMessage({task: 'APPEND', data: this.data});
-
       return {
-        worker: {
-          chartWorker,
-          chartID: null,
-          optimizer: null
-        },
         chartData: this.data,
-        width: 1000,
-        height: 350,
         candles: null,
         interactive: {
           hoverCandle: null,
-          mouseX: 0,
-          mouseY: 0
-        },
-        zoom: {
-          toucheStartDistance: 0,
-          toucheStartValue: 0,
-          value: this.intervalWidth / this.initExposition,       // Текущий зум
-          step: 1.1,      // K преращение зума
-          time_parts: this.availableIntervals, // Возможные дискретности времени на оси Х
-          max_parts: 13,
-          curr_time_part: 0
-        },
-        interval: {
-          width: this.intervalWidth,
-          offset: this.intervalStartOffset ? +this.intervalStartOffset : 0    // Смещение графика слева
-        },
-        chart: {
-          height: 260,
-          width: 940,
-          offset: {
-            top: 36,
-            left: 60
-          }
-        },
+          cursorX: 0,
+          cursorY: 0
+        }
       };
     }
   };
@@ -541,7 +250,7 @@
 
 <style lang="scss" scoped>
 
-  .cryptochart {
+  .crypto-chart {
     .axis-y, .axis-x, .axis-border {
       shape-rendering: crispEdges;
       stroke: #000;
