@@ -1,88 +1,68 @@
 <template>
-  <svg
-          class="crypto-chart"
-          :view-box.camel="[0, 0, width, height]"
-          @mousedown.prevent="_onMixinMouse"
-          @mousemove.prevent="_onMixinMouse"
-          @mouseup.prevent="_onMixinMouse"
-          @mouseleave.prevent="_onMixinMouse"
-          @touchstart.prevent="_onMixinTouch"
-          @touchmove.prevent="_onMixinTouch"
-          @touchend.prevent="_onMixinTouch"
-          @touchcancel.prevent="_onMixinTouch"
-
-  >
-    <g :transform="['translate(' + chart.offset.left, chart.offset.top + ')']">
-      <g>
-        <rect class="axis-border" :width="chart.width" :height="chart.height"></rect>
-        <g
-                v-for="price in axisY"
-                :transform="['translate(0', price.y + ')']"
-        >
-          <line :x2="chart.width" y2="0" class="axis-y" opacity="0.1"></line>
-          <text
-                  :x="-10"
-                  :dy="fontSizeAxisY / 2"
-                  :font-size="fontSizeAxisY * 0.75"
-                  text-anchor = 'end'
-          >
-            {{price.price | price}}
-          </text>
+  <div>
+    <svg class="crypto-chart"
+         :view-box.camel="[0, 0, width, height]"
+         @mousedown.prevent="_onMixinMouse"
+         @mousemove.prevent="_onMixinMouse"
+         @mouseup.prevent="_onMixinMouse"
+         @mouseleave.prevent="_onMixinMouse"
+         @touchstart.prevent="_onMixinTouch"
+         @touchmove.prevent="_onMixinTouch"
+         @touchend.prevent="_onMixinTouch"
+         @touchcancel.prevent="_onMixinTouch"
+    >
+      <g :transform="['translate(' + chart.offset.left, chart.offset.top + ')']">
+        <g>
+          <rect class="axis-border" :width="chart.width" :height="chart.height"></rect>
+          <g v-for="price in axisY" :transform="['translate(0', price.y + ')']">
+            <line :x2="chart.width" y2="0" class="axis-y" opacity="0.1"></line>
+            <text :x="-10" :dy="fontSizeAxisY / 2" :font-size="fontSizeAxisY * 0.75" text-anchor='end'>
+              {{price.price | price}}
+            </text>
+          </g>
+          <g v-for="time in axisX" :transform="['translate(' + time.x, '0)']" :key="time.time">
+            <line :y2="chart.height" x2="0" class="axis-x" opacity="0.1"></line>
+            <text :y="chart.height + fontSizeAxisX" style="text-anchor: middle;" :font-size="fontSizeAxisX">
+              {{time.time | time(zoom.curr_time_part)}}
+            </text>
+          </g>
         </g>
-        <g
-                v-for="time in axisX"
-                :transform="['translate(' + time.x, '0)']"
-                :key="time.time"
-        >
-          <line :y2="chart.height" x2="0" class="axis-x" opacity="0.1"></line>
-          <text
-                  :y="chart.height + fontSizeAxisX"
-                  style="text-anchor: middle;"
-                  :font-size="fontSizeAxisX"
-          >
-            {{time.time | time(zoom.curr_time_part)}}
-          </text>
+        <g v-if="candles">
+          <path class="cross" :d="crossPath"/>
+          <path class="candles-path-positive" :d="positiveCandlesPath"/>
+          <path class="candles-path-negative" :d="negativeCandlesPath"/>
+          <path class="candles-path-volume" :d="volumeCandlesPath"/>
+          <template v-if="interactive.hoverCandle">
+            <path class="candles-path-volume hover"
+                  :d="candles.volumePath[interactive.hoverCandle.volumePathIndex]"/>
+            <path v-if="interactive.hoverCandle.class == 'negative'" class="candles-path-negative hover"
+                  :d="candles.candlesNegativePath[interactive.hoverCandle.candlePathIndex]"/>
+            <path v-else-if="interactive.hoverCandle.class == 'positive'" class="candles-path-positive hover"
+                  :d="candles.candlesPositivePath[interactive.hoverCandle.candlePathIndex]"/>
+          </template>
         </g>
-      </g>
-      <g v-if="candles">
-        <path class="cross" :d="crossPath" />
-        <path class="candles-path-positive" :d="positiveCandlesPath" />
-        <path class="candles-path-negative" :d="negativeCandlesPath" />
-        <path class="candles-path-volume" :d="volumeCandlesPath" />
         <template v-if="interactive.hoverCandle">
-          <path class="candles-path-volume hover"
-                :d="candles.volumePath[interactive.hoverCandle.volumePathIndex]" />
-          <path v-if="interactive.hoverCandle.class == 'negative'" class="candles-path-negative hover"
-                :d="candles.candlesNegativePath[interactive.hoverCandle.candlePathIndex]" />
-          <path v-else-if="interactive.hoverCandle.class == 'positive'" class="candles-path-positive hover"
-                :d="candles.candlesPositivePath[interactive.hoverCandle.candlePathIndex]" />
+          <text v-if="interactive.hoverCandle" :y="chart.offset.top + 10" :x="10" style="text-anchor: start;" :font-size="fontSizeAxisX">
+            O: {{interactive.hoverCandle.open.toFixed(6)}}
+            H: {{interactive.hoverCandle.high.toFixed(6)}}
+            L: {{interactive.hoverCandle.low.toFixed(6)}}
+            C: {{interactive.hoverCandle.close.toFixed(6)}}
+            Vol: {{interactive.hoverCandle.volume.toFixed(6)}}
+          </text>
+          <g class="price-label" :transform="['translate(-3', interactive.cursorY + ')']">
+            <path d="M-36 -6 L-6 -6 L0 0 L-6 6 L-36 6"/>
+            <text x="-6" :y="fontSizeAxisY * 0.33" :font-size="fontSizeAxisY * 0.70">{{currentPrice | price}}</text>
+          </g>
+          <g class="moment-label" :transform="['translate(' + interactive.cursorX, chart.height + ')']">
+            <path d="M-36 0 L36 0 L36 24 L-36 24"/>
+            <text :y="fontSizeAxisY * 0.9" :font-size="fontSizeAxisY * 0.70">{{interactive.hoverCandle.timestamp |
+              moment}}
+            </text>
+          </g>
         </template>
       </g>
-      <template v-if="interactive.hoverCandle">
-        <text
-                v-if="interactive.hoverCandle"
-                :y="chart.offset.top + 10"
-                :x="10"
-                style="text-anchor: start;"
-                :font-size="fontSizeAxisX"
-        >
-          O: {{interactive.hoverCandle.open.toFixed(6)}}
-          H: {{interactive.hoverCandle.high.toFixed(6)}}
-          L: {{interactive.hoverCandle.low.toFixed(6)}}
-          C: {{interactive.hoverCandle.close.toFixed(6)}}
-          Vol: {{interactive.hoverCandle.volume.toFixed(6)}}
-        </text>
-        <g class="price-label" :transform="['translate(-3', interactive.cursorY + ')']">
-          <path d="M-36 -6 L-6 -6 L0 0 L-6 6 L-36 6" />
-          <text x="-6" :y="fontSizeAxisY * 0.33" :font-size="fontSizeAxisY * 0.70">{{currentPrice | price}}</text>
-        </g>
-        <g class="moment-label" :transform="['translate(' + interactive.cursorX, chart.height + ')']">
-          <path d="M-36 0 L36 0 L36 24 L-36 24" />
-          <text :y="fontSizeAxisY * 0.9" :font-size="fontSizeAxisY * 0.70">{{interactive.hoverCandle.timestamp | moment}}</text>
-        </g>
-      </template>
-    </g>
-  </svg>
+    </svg>
+  </div>
 </template>
 
 <script>
@@ -107,7 +87,7 @@
       MixinWorkers
     ],
     computed: {
-      positiveCandlesPath () {
+      positiveCandlesPath() {
         let result = this.candles.candlesPositivePath;
         if (this.interactive.hoverCandle && this.interactive.hoverCandle.class === 'positive') {
           result = cloneDeep(result);
@@ -115,7 +95,7 @@
         }
         return result.join();
       },
-      negativeCandlesPath () {
+      negativeCandlesPath() {
         let result = this.candles.candlesNegativePath;
         if (this.interactive.hoverCandle && this.interactive.hoverCandle.class === 'negative') {
           result = cloneDeep(result);
@@ -123,7 +103,7 @@
         }
         return result.join();
       },
-      volumeCandlesPath () {
+      volumeCandlesPath() {
         let result = this.candles.volumePath;
         if (this.interactive.hoverCandle) {
           result = result.slice();
@@ -131,7 +111,7 @@
         }
         return result.join();
       },
-      crossPath () {
+      crossPath() {
         if (!this.interactive.hoverCandle) {
           return '';
         }
@@ -140,12 +120,12 @@
           `M0 ${this.interactive.cursorY} L${this.chart.width} ${this.interactive.cursorY} `
           ;
       },
-      currentPrice () {
+      currentPrice() {
         return this.candles.high - (this.candles.high - this.candles.low) *
           (this.interactive.cursorY / this.chart.height);
       },
       // Ось Y
-      axisY () {
+      axisY() {
         if (!this.candles) {
           return [];
         }
@@ -164,7 +144,7 @@
         return result;
       },
       // Ось X
-      axisX () {
+      axisX() {
         let timePart = null;
         let partsNumber = null;
         let result = [];
@@ -204,26 +184,26 @@
         return result;
       },
 
-      fontSizeAxisY () {
+      fontSizeAxisY() {
         return this.fontHeight < (this.chart.offset.left / 6) ? this.chart.offset.left / 6 : this.fontHeight;
       },
 
-      fontSizeAxisX () {
+      fontSizeAxisX() {
         return this.fontHeight > (this.clientWidth / 16) ? this.clientWidth / 16 : this.fontHeight;
       }
     },
     methods: {
-      onRedraw () {
-        for(let worker in this.workers)
+      onRedraw() {
+        for (let worker in this.workers)
           this.workers[worker].redraw();
       },
 
-      onHover (params) {
+      onHover(params) {
         this.interactive.cursorX = params.x;
         this.interactive.cursorY = params.y;
         this.findHoverCandle();
       },
-      findHoverCandle () {
+      findHoverCandle() {
         if (this.candles) {
           this.candles.candles.map((candle) => {
             if ((this.interactive.cursorX >= candle.x) &&
@@ -234,7 +214,7 @@
         }
       },
     },
-    data () {
+    data() {
       return {
         chartData: this.data,
         candles: null,

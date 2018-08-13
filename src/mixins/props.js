@@ -1,5 +1,9 @@
 export default {
   props: {
+    initialSize: {
+      type: Object,
+      required: false
+    },
     data: {
       type: Array,
       required: true

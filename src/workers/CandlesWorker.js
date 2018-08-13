@@ -45,15 +45,15 @@ class CandlesWorker {
    * @return none
    */
   makeTree () {
-    this.data.start = this.data.raw[0].timestamp;
-    this.data.end = this.data.raw[this.data.raw.length - 1].timestamp;
+    this.data.start = this.data.raw[0].date;
+    this.data.end = this.data.raw[this.data.raw.length - 1].date;
     this.data.params.candleWidths.map((case_) => {
       this.data.tree[case_] = [];
 
       let lastCandle = null;
 
       this.data.raw.map((candle) => {
-        let id = candle.timestamp - (candle.timestamp % case_);
+        let id = candle.date - (candle.date % case_);
         if (lastCandle && (id === lastCandle.id)) {
           lastCandle.low = candle.low < lastCandle.low ? candle.low : lastCandle.low;
           lastCandle.high = candle.high > lastCandle.high ? candle.high : lastCandle.high;
@@ -65,7 +65,7 @@ class CandlesWorker {
           }
           lastCandle = {
             id: id,
-            timestamp: candle.timestamp,
+            timestamp: candle.date,
             open: candle.open,
             low: candle.low,
             high: candle.high,
@@ -165,7 +165,6 @@ class CandlesWorker {
     let koofY = viewHeight / (result.high - result.low);
     let koofYV = viewHeight * VOLUME_ZONE / result.maxVolume; // for volume
     let barHalf = theCase * koofX * 0.25;
-
     for (let index = start; index < stop; index++) {
       let candle = theData[index];
       let x = (candle.timestamp - offset) * koofX;
