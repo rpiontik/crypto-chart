@@ -9,8 +9,8 @@ export default {
         height: 260,
         width: 940,
         offset: {
-          top: 36,
-          left: 60
+          top: 0,
+          left: 0
         }
       },
       zoom: {
@@ -46,11 +46,18 @@ export default {
       return ('clientHeight' in this) && (+this.clientHeight) !== 0 ? this.height / this.clientHeight : 1;
     },
     _onResize () {
-      this.clientWidth = this.$el.clientWidth;
-      this.clientHeight = this.$el.clientHeight;
-      this.width = this.clientWidth;
-      this.height = this.clientHeight;
-      this.chart.offset.top = this._calcKoofScreenY() * 10;
+      if (this.initialSize.width > 0) {
+        this.width = this.initialSize.width;
+      } else {
+        this.clientWidth = this.$el.clientWidth;
+        this.width = this.clientWidth;
+      }
+      if (this.initialSize.height > 0) {
+        this.height = this.initialSize.height;
+      } else {
+        this.clientHeight = this.$el.clientHeight;
+        this.height = this.clientHeight;
+      }
       this.chart.width = this.width - this.chart.offset.left - this.koofScreenX * 2;
       this.chart.height = this.height - this.chart.offset.top - this.fontSizeAxisX * 1.5;
       if ('onRedraw' in this) {

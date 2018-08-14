@@ -11,18 +11,18 @@
          @touchend.prevent="_onMixinTouch"
          @touchcancel.prevent="_onMixinTouch"
     >
-      <g :transform="['translate(' + chart.offset.left, chart.offset.top + ')']">
+      <!--main chart group-->
+      <g>
         <g>
-          <rect class="axis-border" :width="chart.width" :height="chart.height"></rect>
-          <g v-for="price in axisY" :transform="['translate(0', price.y + ')']">
-            <line :x2="chart.width" y2="0" class="axis-y" opacity="0.1"></line>
-            <text :x="-10" :dy="fontSizeAxisY / 2" :font-size="fontSizeAxisY * 0.75" text-anchor='end'>
+          <!--<rect class="axis-border" :width="chart.width" :height="chart.height"></rect>-->
+          <g v-for="price in axisY" :transform="['translate(0', price.y + 10 + ')']">
+            <text :x="chart.width" :dy="fontSizeAxisY / 2" :font-size="fontSizeAxisY * 0.75" text-anchor='end'>
               {{price.price | price}}
             </text>
           </g>
-          <g v-for="time in axisX" :transform="['translate(' + time.x, '0)']" :key="time.time">
+          <g v-for="time in axisX" :transform="`translate(${time.x}, 0)`" :key="time.time">
             <line :y2="chart.height" x2="0" class="axis-x" opacity="0.1"></line>
-            <text :y="chart.height + fontSizeAxisX" style="text-anchor: middle;" :font-size="fontSizeAxisX">
+            <text :y="chart.height + fontSizeAxisX" style="text-anchor: middle;" :font-size="fontSizeAxisY * 0.75">
               {{time.time | time(zoom.curr_time_part)}}
             </text>
           </g>
@@ -49,11 +49,11 @@
             C: {{interactive.hoverCandle.close.toFixed(6)}}
             Vol: {{interactive.hoverCandle.volume.toFixed(6)}}
           </text>
-          <g class="price-label" :transform="['translate(-3', interactive.cursorY + ')']">
+          <g class="price-label" :transform="`translate(${chart.width}, ${interactive.cursorY})`">
             <path d="M-36 -6 L-6 -6 L0 0 L-6 6 L-36 6"/>
             <text x="-6" :y="fontSizeAxisY * 0.33" :font-size="fontSizeAxisY * 0.70">{{currentPrice | price}}</text>
           </g>
-          <g class="moment-label" :transform="['translate(' + interactive.cursorX, chart.height + ')']">
+          <g class="moment-label" :transform="`translate(${interactive.cursorX}, ${chart.height - 20})`">
             <path d="M-36 0 L36 0 L36 24 L-36 24"/>
             <text :y="fontSizeAxisY * 0.9" :font-size="fontSizeAxisY * 0.70">{{interactive.hoverCandle.timestamp |
               moment}}
