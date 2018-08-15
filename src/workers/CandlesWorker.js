@@ -30,14 +30,14 @@ class CandlesWorker {
   append (data) {
     this.data.treeReady = false;
     this.data.raw = this.data.raw.concat(data);
-    this.data.raw.sort((a, b) => {
-      if (a.timestamp < b.timestamp) {
-        return -1;
-      } else if (a.timestamp > b.timestamp) {
-        return 1;
-      }
-      return 0;
-    });
+    // this.data.raw.sort((a, b) => {
+    //   if (a.timestamp < b.timestamp) {
+    //     return -1;
+    //   } else if (a.timestamp > b.timestamp) {
+    //     return 1;
+    //   }
+    //   return 0;
+    // });
     this.sendMessage('APPENDED');
   }
   /**
@@ -175,13 +175,13 @@ class CandlesWorker {
         rCandle.class = 'positive';
         rCandle.candlePathIndex = result.candlesPositivePath.push(
           path + `M${x} ${(candle.close - result.low) * koofY} L${x + barHalf * 2} ${(candle.close - result.low) * koofY} ` +
-            `L${x + barHalf * 2} ${(candle.open - result.low) * koofY} L${x} ${(candle.open - result.low) * koofY} `
+          `L${x + barHalf * 2} ${(candle.open - result.low) * koofY} L${x} ${(candle.open - result.low) * koofY} `
         ) - 1;
       } else {
         rCandle.class = 'negative';
         rCandle.candlePathIndex = result.candlesNegativePath.push(
           path + `M${x} ${(candle.open - result.low) * koofY} L${x + barHalf * 2} ${(candle.open - result.low) * koofY} ` +
-            `L${x + barHalf * 2} ${(candle.close - result.low) * koofY} L${x} ${(candle.close - result.low) * koofY} `
+          `L${x + barHalf * 2} ${(candle.close - result.low) * koofY} L${x} ${(candle.close - result.low) * koofY} `
         ) - 1;
       }
 
