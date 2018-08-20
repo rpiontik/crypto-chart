@@ -22,6 +22,9 @@ export default {
         width: this.intervalWidth,
         offset: this.intervalStartOffset ? +this.intervalStartOffset : 0
       },
+      offsets: {
+        chartOffset: 20
+      }
     }
   },
   created () {

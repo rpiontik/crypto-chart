@@ -11,7 +11,14 @@ export default {
   },
   watch: {
     data () {
-      if (this.workers.candlesWorker && this.data.length > 0) {
+      if (this.workers.candlesWorker) {
+        this.workers.candlesWorker.postMessage({
+          task: 'SET-PARAMS',
+          params: {
+            candleWidths: this.availableCandleWidths,
+            noMoreData: this.noMoreData
+          }
+        });
         this.workers.candlesWorker.postMessage({task: 'APPEND', data: this.data});
       }
     }
@@ -37,13 +44,17 @@ export default {
         offset: this.interval.offset,
         exposition: this.exposition,
         viewWidth: this.chart.width,
-        viewHeight: this.chart.height
+        viewHeight: this.chart.height - this.offsets.chartOffset * 2
       });
     },
     _onCandlesWorkerMessage (message) {
       switch (message.data.type) {
         case 'APPENDED' : {
           this._remakeCandles();
+          break;
+        }
+        case 'NEED_DATA' : {
+          this.$emit('requestData', message.data.body);
           break;
         }
         case 'RENDERED' : {

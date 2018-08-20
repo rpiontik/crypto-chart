@@ -4,10 +4,10 @@ export default {
       return (timestamp - timestamp % 86400) / 86400 + 1;
     },
     time (timestamp, partTime) {
-      let date = new Date(timestamp * 1000);
-      let year = date.getUTCFullYear();
-      let month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
-      let day = ('0' + (date.getUTCDate())).slice(-2);
+      let date = new Date(timestamp * 1e3);
+      let year = date.getFullYear();
+      let month = ('0' + (date.getMonth() + 1)).slice(-2);
+      let day = ('0' + (date.getDate())).slice(-2);
       let hours = ('0' + date.getHours()).slice(-2);
       let mins = ('0' + date.getMinutes()).slice(-2);
       let sec = ('0' + date.getSeconds()).slice(-2);
@@ -23,10 +23,10 @@ export default {
       return value ? value.toFixed(4) : 0;
     },
     moment (timestamp) {
-      let date = new Date(timestamp * 1000);
+      let date = new Date(timestamp * 1e3);
       let year = date.getUTCFullYear();
-      let month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
-      let day = ('0' + (date.getUTCDate())).slice(-2);
+      let month = ('0' + (date.getMonth() + 1)).slice(-2);
+      let day = ('0' + (date.getDate())).slice(-2);
       let hours = ('0' + date.getHours()).slice(-2);
       let mins = ('0' + date.getMinutes()).slice(-2);
       return `${day}.${month}.${year} ${hours}:${mins}`;
