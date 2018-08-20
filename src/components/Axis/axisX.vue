@@ -1,11 +1,12 @@
 <template>
   <g>
     <g v-for="time in axisX" :transform="`translate(${time.x}, 0)`" :key="time.time">
-      <line :y1="height - 20" :y2="height - 15" :x1="xOffset" :x2="xOffset" class="axis-x" opacity="0.3"></line>
-      <text :y="height - 5" style="text-anchor: middle;" font-size="10">
+      <line :y1="chartHeight - 20" :y2="chartHeight - 15" :x1="xOffset" :x2="xOffset" class="axis-x" opacity="0.3"></line>
+      <text :y="chartHeight - 5" style="text-anchor: middle;" font-size="10">
         {{time.time | time(timePart)}}
       </text>
     </g>
+    <line :x1="0" :x2="chartWidth" :y1="chartHeight - chartOffset" :y2="chartHeight - chartOffset" stroke="black" opacity="0.3"/>
   </g>
 </template>
 
@@ -27,11 +28,19 @@
         type: Number,
         required: true
       },
+      chartOffset: {
+        type: Number,
+        required: true
+      },
       dpi: {
         type: Number,
         required: true
       },
-      height: {
+      chartHeight: {
+        type: Number,
+        required: true
+      },
+      chartWidth: {
         type: Number,
         required: true
       },

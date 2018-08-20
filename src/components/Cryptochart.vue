@@ -22,50 +22,24 @@
             Vol: {{interactive.hoverCandle.volume.toFixed(6)}}
           </text>
         </g>
-        <!--<g>-->
-          <!--<line :x1="0" :x2="chart.width" :y1="this.offsets.chartOffset" :y2="this.offsets.chartOffset" stroke="black"/>-->
-        <!--</g>-->
         <g v-if="candles" :transform="`translate(0, ${this.offsets.chartOffset})`">
-          <path class="cross" :d="crossPath"/>
           <path class="candles-path-positive" :d="positiveCandlesPath"/>
           <path class="candles-path-negative" :d="negativeCandlesPath"/>
           <path class="candles-path-volume" :d="volumeCandlesPath"/>
-          <template v-if="interactive.hoverCandle">
+          <g v-if="interactive.hoverCandle">
             <path class="candles-path-volume hover"
                   :d="candles.volumePath[interactive.hoverCandle.volumePathIndex]"/>
             <path v-if="interactive.hoverCandle.class == 'negative'" class="candles-path-negative hover"
                   :d="candles.candlesNegativePath[interactive.hoverCandle.candlePathIndex]"/>
             <path v-else-if="interactive.hoverCandle.class == 'positive'" class="candles-path-positive hover"
                   :d="candles.candlesPositivePath[interactive.hoverCandle.candlePathIndex]"/>
-          </template>
-        </g>
-        <g>
-          <line :x1="0" :x2="chart.width"
-                :y1="chart.height - offsets.chartOffset" :y2="chart.height - offsets.chartOffset"
-                stroke="black" opacity="0.3"/>
-        </g>
-        <g>
-          <!--<rect class="axis-border" :width="chart.width" :height="chart.height"></rect>-->
-          <g v-for="price in axisY" :transform="['translate(0', price.y + 10 + ')']">
-            <!--<line :x="chart.width" :dy="fontSizeAxisY / 2" opacity="0.3"></line>-->
-            <text :x="chart.width" :dy="fontSizeAxisY / 2" :font-size="fontSizeAxisY * 0.75" text-anchor='end'>
-              {{price.price | price}}
-            </text>
           </g>
         </g>
-        <axis-x :height="chart.height" :time-parts="zoom.time_parts" :exposition="exposition"
-                :offset="interval.offset" :dpi="dpi" :candleWidth="candles && candles.width || 3"/>
-        <template v-if="interactive.hoverCandle">
-          <g class="price-label" :transform="`translate(${chart.width}, ${interactive.cursorY})`">
-            <path d="M-70 -10 L0 -10 L0 0 L0 10 L-70 10"/>
-            <text x="-6" :y="fontSizeAxisY * 0.33" :font-size="fontSizeAxisY * 0.70">{{currentPrice | price}}</text>
-          </g>
-          <g class="moment-label" :transform="`translate(${interactive.cursorX}, ${chart.height - this.offsets.chartOffset})`">
-            <path d="M-50 0 L50 0 L50 24 L-50 24"/>
-            <text :y="fontSizeAxisY * 0.9" :font-size="10">{{interactive.hoverCandle.timestamp | moment}}
-            </text>
-          </g>
-        </template>
+        <axis-y :candles="candles" :chart-height="chart.height" :chart-width="chart.width" :chart-offset="offsets.chartOffset"/>
+        <axis-x :chart-height="chart.height" :chart-width="chart.width" :time-parts="zoom.time_parts" :exposition="exposition"
+                :offset="interval.offset" :dpi="dpi" :candleWidth="candles && candles.width || 3" :chart-offset="offsets.chartOffset"/>
+        <crosshair :chart-height="chart.height" :chart-width="chart.width" :chart-offset="offsets.chartOffset"
+                   :candles="candles" :interactive="interactive" />
       </g>
     </svg>
   </div>
@@ -81,7 +55,9 @@
   import MixinProps from '../mixins/props';
   import MixinWorkers from '../mixins/workers';
 
-  import AxisX from "./Screen/axisX";
+  import AxisX from "./Axis/axisX";
+  import AxisY from "./Axis/axisY";
+  import Crosshair from "./Intercative/Crosshair"
 
   export default {
     name: 'crypto-chart',
@@ -95,7 +71,20 @@
       MixinWorkers
     ],
     components: {
-      AxisX
+      AxisX,
+      AxisY,
+      Crosshair
+    },
+    data() {
+      return {
+        chartData: this.data,
+        candles: null,
+        interactive: {
+          hoverCandle: null,
+          cursorX: 0,
+          cursorY: 0
+        }
+      };
     },
     computed: {
       positiveCandlesPath() {
@@ -122,79 +111,6 @@
         }
         return result.join();
       },
-      crossPath() {
-        if (!this.interactive.hoverCandle) {
-          return '';
-        }
-        let x = this.interactive.hoverCandle.x + this.candles.width * 0.25;
-        return `M${x} 0 L${x} ${this.chart.height} ` +
-          `M0 ${this.interactive.cursorY - this.offsets.chartOffset} L${this.chart.width} ${this.interactive.cursorY - this.offsets.chartOffset} `
-          ;
-      },
-      currentPrice() {
-        return this.candles.high - (this.candles.high - this.candles.low) *
-          (this.interactive.cursorY / this.chart.height);
-      },
-      // Ось Y
-      axisY() {
-        if (!this.candles) {
-          return [];
-        }
-        let stepY = this.chart.height / 10;
-        let stepPrice = (this.candles.high - this.candles.low) / 10;
-        let result = [];
-
-        for (let f = 0, y = this.chart.height, price = this.candles.low;
-             f < 11;
-             y -= stepY, price += stepPrice, f++) {
-          result.push({
-            y: y,
-            price: price
-          });
-        }
-        return result;
-      },
-      // Ось X
-      // axisX() {
-      //   let timePart = null;
-      //   let partsNumber = null;
-      //   let result = [];
-      //
-      //   this.zoom.time_parts.map((candidate) => {
-      //     let candidatePartsNumber = this.exposition / (candidate * 2);
-      //
-      //     if (
-      //       (partsNumber == null || candidatePartsNumber > partsNumber) &&
-      //       candidatePartsNumber <= this.zoom.time_parts.length
-      //     ) {
-      //       timePart = candidate;
-      //       partsNumber = candidatePartsNumber;
-      //     }
-      //   });
-      //
-      //   if (!timePart) {
-      //     timePart = this.zoom.time_parts[this.zoom.time_parts.length - 1] || 1;
-      //   }
-      //
-      //   for (
-      //     let moment = this.interval.offset - (this.interval.offset % timePart);
-      //     moment < this.interval.offset + this.exposition;
-      //     moment += timePart
-      //   ) {
-      //     if (moment <= this.interval.offset) {
-      //       continue;
-      //     }
-      //
-      //     result.push({
-      //       x: (moment - this.interval.offset) * this.dpi,
-      //       time: moment
-      //     });
-      //   }
-      //
-      //   this.zoom.curr_time_part = timePart;
-      //   return result;
-      // },
-
       fontSizeAxisY() {
         return this.fontHeight < (this.chart.offset.left / 6) ? this.chart.offset.left / 6 : this.fontHeight;
       },
@@ -223,17 +139,6 @@
           });
         }
       },
-    },
-    data() {
-      return {
-        chartData: this.data,
-        candles: null,
-        interactive: {
-          hoverCandle: null,
-          cursorX: 0,
-          cursorY: 0
-        }
-      };
     }
   };
 </script>
