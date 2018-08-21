@@ -214,9 +214,9 @@ class CandlesWorker {
       for (let index = start; index < stop; index++) {
         let candle = theData[index];
         let x = (candle.timestamp - offset) * koofX;
-        let pathMainLine = `M${x + barHalf} ${(result.high - candle.low) * koofY} L${x + barHalf} ${(result.high - candle.high) * koofY} `;
-        let pathCandleBody = `M${x} ${(result.high - candle.close) * koofY} L${x + barHalf * 2} ${(result.high - candle.close) * koofY} ` +
-            `L${x + barHalf * 2} ${(result.high - candle.open) * koofY} L${x} ${(result.high - candle.open) * koofY} `;
+        let pathMainLine = `M${x} ${(result.high - candle.low) * koofY} L${x} ${(result.high - candle.high) * koofY} `;
+        let pathCandleBody = `M${x - barHalf} ${(result.high - candle.close) * koofY} L${x + barHalf} ${(result.high - candle.close) * koofY} ` +
+            `L${x + barHalf} ${(result.high - candle.open) * koofY} L${x - barHalf} ${(result.high - candle.open) * koofY} `;
         let rCandle = Object.assign({}, candle);
 
         if (candle.open <= candle.close) {
@@ -227,8 +227,8 @@ class CandlesWorker {
           rCandle.candlePathIndex = result.candlesNegativePath.push(pathMainLine + pathCandleBody) - 1;
         }
 
-        rCandle.volumePathIndex = result.volumePath.push(`M${x} ${viewHeight - candle.volume * koofYV} L${x + barHalf * 2} ${viewHeight - candle.volume * koofYV} ` +
-          `L${x + barHalf * 2} ${viewHeight} L${x} ${viewHeight} `) - 1;
+        rCandle.volumePathIndex = result.volumePath.push(`M${x - barHalf} ${viewHeight - candle.volume * koofYV} L${x + barHalf} ${viewHeight - candle.volume * koofYV} ` +
+          `L${x + barHalf} ${viewHeight} L${x - barHalf} ${viewHeight} `) - 1;
 
         rCandle.x = x;
         result.candles.push(rCandle);

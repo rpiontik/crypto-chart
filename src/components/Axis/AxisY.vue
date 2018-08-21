@@ -1,8 +1,8 @@
 <template>
   <g>
     <g v-for="price in axisY" :transform="`translate(0, ${price.y + chartOffset})`">
-      <line x1="0" :x2="chartWidth - 50" class="axis-x" opacity="0.3"></line>
-      <text :x="chartWidth" font-size="10" text-anchor='end'> {{price.price | price}} </text>
+      <line x1="0" :x2="chartWidth" class="axis-x" opacity="0.1"></line>
+      <text :x="chartWidth" y="-4" font-size="10" text-anchor='end'> {{price.price | price}} </text>
     </g>
   </g>
 </template>

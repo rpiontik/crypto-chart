@@ -43,7 +43,7 @@
         if (!this.interactive.hoverCandle) {
           return '';
         }
-        let x = this.interactive.hoverCandle.x + this.candles.width * 0.25;
+        let x = this.interactive.hoverCandle.x;
         return `M${x} 0 L${x} ${this.chartHeight - this.chartOffset * 2} ` +
           `M0 ${this.interactive.cursorY - this.chartOffset} L${this.chartWidth} ${this.interactive.cursorY - this.chartOffset} `
           ;
