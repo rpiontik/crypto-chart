@@ -20,7 +20,7 @@ export default {
           case 'touchmove':
             if (this.eventsTouch.lastDistance >= 0) {
               let new_dist = calcDistance(evt.targetTouches);
-              let targetMoment = this.interval.offset + this.exposition / 2;
+              let targetMoment = this.interval.offset + this.exposition * (evt.targetTouches[0].screenX / this.chart.width);
               if (this.eventsTouch.lastDistance && ('onZoom' in this)) {
                 this.onZoom(Math.abs(new_dist / this.eventsTouch.lastDistance), targetMoment);
               }

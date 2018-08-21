@@ -1,6 +1,6 @@
 {
   "name": "crypto-chart",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The VUE component for visualization market-data of crypto exchanges.",
   "main": "src/index.js",
   "scripts": {
@@ -23,7 +23,6 @@
   },
   "homepage": "https://github.com/rpiontik/crypto-chart#readme",
   "dependencies": {
-    "axios": "^0.16.2",
     "lodash.clonedeep": "^4.5.0",
     "vue": "^2.5.16"
   },
