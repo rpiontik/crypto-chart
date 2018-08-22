@@ -9,8 +9,8 @@ export default {
         height: 260,
         width: 940,
         offset: {
-          top: 36,
-          left: 60
+          top: 0,
+          left: 0
         }
       },
       zoom: {
@@ -21,7 +21,7 @@ export default {
       interval: {
         width: this.intervalWidth,
         offset: this.intervalStartOffset ? +this.intervalStartOffset : 0
-      },
+      }
     }
   },
   created () {
@@ -46,11 +46,18 @@ export default {
       return ('clientHeight' in this) && (+this.clientHeight) !== 0 ? this.height / this.clientHeight : 1;
     },
     _onResize () {
-      this.clientWidth = this.$el.clientWidth;
-      this.clientHeight = this.$el.clientHeight;
-      this.width = this.clientWidth;
-      this.height = this.clientHeight;
-      this.chart.offset.top = this._calcKoofScreenY() * 10;
+      if (this.initialSize.width > 0) {
+        this.width = this.initialSize.width;
+      } else {
+        this.clientWidth = this.$el.clientWidth;
+        this.width = this.clientWidth;
+      }
+      if (this.initialSize.height > 0) {
+        this.height = this.initialSize.height;
+      } else {
+        this.clientHeight = this.$el.clientHeight;
+        this.height = this.clientHeight;
+      }
       this.chart.width = this.width - this.chart.offset.left - this.koofScreenX * 2;
       this.chart.height = this.height - this.chart.offset.top - this.fontSizeAxisX * 1.5;
       if ('onRedraw' in this) {
@@ -59,7 +66,9 @@ export default {
     },
     _rebaseZoomByParams (params, zoom) {
       let maxPart = params.zoom.time_parts[params.zoom.time_parts.length - 1];
+      let minPart = params.zoom.time_parts[0];
       let minZoom = params.interval.width / (maxPart * params.zoom.time_parts.length);
+      let maxZoom = params.interval.width / (minPart * 3);
       let result = zoom < minZoom ? minZoom : zoom;
 
       if (this.candleWidths && this.candleWidths.length) {
@@ -67,7 +76,7 @@ export default {
         minZoom = params.interval.width / (maxCandleWidth * this.chart.width / 3);
         result = result < minZoom ? minZoom : result;
       }
-      return result;
+      return result > maxZoom ? maxZoom : result;
     },
     rebaseZoom (zoom) {
       return this._rebaseZoomByParams(this, zoom);
