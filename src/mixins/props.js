@@ -1,7 +1,19 @@
 export default {
   props: {
+    initialSize: {
+      type: Object,
+      required: false
+    },
     data: {
       type: Array,
+      required: true
+    },
+    dataAverage: {
+      type: Array,
+      required: true
+    },
+    noMoreData: {
+      type: Boolean,
       required: true
     },
     intervalWidth: {
@@ -42,7 +54,7 @@ export default {
     },
     availableCandleWidths (value) {
       this.candleWidths = value;
-      this.worker.chartWorker.postMessage({
+      this.workers.candlesWorker.postMessage({
         task: 'SET-PARAMS',
         params: {
           candleWidths: this.availableCandleWidths
