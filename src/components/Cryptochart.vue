@@ -42,6 +42,7 @@
                    :candles="candles" :interactive="interactive" />
       </g>
     </svg>
+    <navigator :width="chart.width" :average="average" :offset="interval.offset" :exposition="exposition"/>
   </div>
 </template>
 
@@ -54,10 +55,12 @@
   import MixinFilters from '../mixins/filters';
   import MixinProps from '../mixins/props';
   import MixinWorkers from '../mixins/workers';
+  import MixinOptions from '../mixins/options';
 
   import AxisX from "./Axis/axisX";
   import AxisY from "./Axis/axisY";
   import Crosshair from "./Intercative/Crosshair"
+  import Navigator from "./Navigator/Navigator"
 
   export default {
     name: 'crypto-chart',
@@ -68,17 +71,20 @@
       MixinEventsTouche,
       MixinEventsWheel,
       MixinFilters,
-      MixinWorkers
+      MixinWorkers,
+      MixinOptions
     ],
     components: {
       AxisX,
       AxisY,
-      Crosshair
+      Crosshair,
+      Navigator
     },
     data() {
       return {
         chartData: this.data,
         candles: null,
+        average: [],
         interactive: {
           hoverCandle: null,
           cursorX: 0,

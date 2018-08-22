@@ -21,6 +21,11 @@ export default {
         });
         this.workers.candlesWorker.postMessage({task: 'APPEND', data: this.data});
       }
+    },
+    dataAverage () {
+      if (this.workers.candlesWorker) {
+        this.workers.candlesWorker.postMessage({task: 'APPEND_AVERAGE', data: this.dataAverage});
+      }
     }
   },
   methods: {
@@ -67,6 +72,9 @@ export default {
           this.candles = candles;
           this.candles['candles'] = message.data.body.candles;
           break;
+        }
+        case 'RENDERED_AVERAGE' : {
+          this.average = message.data.body;
         }
         default: break;
       }

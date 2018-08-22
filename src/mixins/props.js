@@ -8,6 +8,10 @@ export default {
       type: Array,
       required: true
     },
+    dataAverage: {
+      type: Array,
+      required: true
+    },
     noMoreData: {
       type: Boolean,
       required: true

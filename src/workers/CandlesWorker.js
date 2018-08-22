@@ -4,13 +4,13 @@ const VOLUME_ZONE = 0.3;    // Область отводимая на объем
 class CandlesWorker {
   constructor () {
     this.data = {
-      params: {},
       treeReady: false,
       raw: [],
       start: null,
       width: null,
       tree: [],
     };
+    this.averageData = [];
     this.params = {
       empty: false,
       noMoreData: false,
@@ -36,8 +36,13 @@ class CandlesWorker {
         this.append(message.data.data);
         break;
       }
+      case 'APPEND_AVERAGE': {
+        this.appendAverage(message.data.data);
+        break;
+      }
       case 'RENDER': {
-        this.render(message.data.offset, message.data.exposition, message.data.viewWidth, message.data.viewHeight);
+        this.renderAverage(message.data.offset, message.data.exposition, message.data.viewWidth, message.data.viewHeight)
+        this.renderCandles(message.data.offset, message.data.exposition, message.data.viewWidth, message.data.viewHeight);
         break;
       }
       default: break;
@@ -68,19 +73,31 @@ class CandlesWorker {
    * @return none
    */
   append (data) {
-    console.log('APPEND', data, this.data.raw);
+    console.log('APPEND');
     this.params.dataRequestPending = false;
     if (data.length > 0) {
       this.data.treeReady = false;
-      // this.data.raw = this.data.raw.concat(data);
       this.data.raw.splice(0);
       this.data.raw = data.slice();
-      // console.log(this.data.raw);
-      // this.data.raw.sort((a, b) => { return a.timestamp - b.timestamp;});
-      // console.log(this.data.raw);
+      this.data.raw.sort((a, b) => { return a.date - b.date;});
     } else if (!this.params.empty && !this.params.noMoreData) {
       this.resetData();
     }
+    this.sendMessage('APPENDED');
+  }
+  appendAverage (data) {
+    console.log('APPEND AVERAGE', data);
+    this.averageData.splice(0);
+    this.averageData = data.slice();
+    // this.params.dataRequestPending = false;
+    // if (data.length > 0) {
+    //   this.data.treeReady = false;
+    //   this.data.raw.splice(0);
+    //   this.data.raw = data.slice();
+    //   this.data.raw.sort((a, b) => { return a.date - b.date;});
+    // } else if (!this.params.empty && !this.params.noMoreData) {
+    //   this.resetData();
+    // }
     this.sendMessage('APPENDED');
   }
   /**
@@ -157,7 +174,7 @@ class CandlesWorker {
    * @param {Number} viewWidth  - view box width
    * @return true/false
    */
-  render (offset, exposition, viewWidth, viewHeight) {
+  renderCandles (offset, exposition, viewWidth, viewHeight) {
     if (!this.data.treeReady) {
       this.makeTree();
     }
@@ -238,6 +255,27 @@ class CandlesWorker {
       this.params.dataRequestPending = true;
       this.sendMessage('NEED_DATA', {offset, exposition});
     }
+  }
+  renderAverage (offset, exposition, viewWidth, viewHeight) {
+    let dataLength = this.averageData.length;
+    let step = viewWidth / this.averageData.length;
+    let result = {
+      minTimestamp: this.averageData[0].date,
+      maxTimestamp: this.averageData[dataLength - 1].date,
+      path: []
+    };
+    let sortedByAverage = this.averageData.slice().sort((a, b) => {return a.average - b.average;});
+    let highest = sortedByAverage[dataLength - 1].average;
+    let lowest = sortedByAverage[0].average;
+    let yMultiplyer = 44 / (highest - lowest);
+    for (let i = 0; i < dataLength; i++) {
+      if (i === 0) {
+        result.path.push(`M${step * i} ${yMultiplyer * (highest - this.averageData[i].average) + 3}`);
+      } else {
+        result.path.push(`L${step * i} ${yMultiplyer * (highest - this.averageData[i].average) + 3}`);
+      }
+    }
+    this.sendMessage('RENDERED_AVERAGE', result);
   }
 }
 
